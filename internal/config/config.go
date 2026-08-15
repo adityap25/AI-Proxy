@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -16,6 +17,12 @@ type Config struct {
 	EmbedModel string
 	LLMModel   string
 	Similarity float64
+
+	// Database Configs
+	DBMaxOpenConns    int
+	DBMaxIdleConns    int
+	DBConnMaxLifetime time.Duration
+	DBPingTimeout     time.Duration
 }
 
 func Load() (*Config, error) {
@@ -54,6 +61,12 @@ func Load() (*Config, error) {
 		EmbedModel: getEnv("EMBED_MODEL", "nomic-embed-text"),
 		LLMModel:   getEnv("LLM_MODEL", "llama3.2:1b"),
 		Similarity: getEnvAsFloat("SIMILARITY_THRESHOLD", 0.15),
+
+		// DB Configs
+		DBMaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
+		DBMaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
+		DBConnMaxLifetime: getEnvAsDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
+		DBPingTimeout:     getEnvAsDuration("DB_PING_TIMEOUT", 5*time.Second),
 	}
 
 	return cfg, nil
@@ -69,6 +82,22 @@ func getEnv(key, defaultVal string) string {
 func getEnvAsFloat(key string, defaultVal float64) float64 {
 	valStr := getEnv(key, "")
 	if val, err := strconv.ParseFloat(valStr, 64); err == nil {
+		return val
+	}
+	return defaultVal
+}
+
+func getEnvAsInt(key string, defaultVal int) int {
+	valStr := getEnv(key, "")
+	if val, err := strconv.Atoi(valStr); err == nil {
+		return val
+	}
+	return defaultVal
+}
+
+func getEnvAsDuration(key string, defaultVal time.Duration) time.Duration {
+	valStr := getEnv(key, "")
+	if val, err := time.ParseDuration(valStr); err == nil {
 		return val
 	}
 	return defaultVal
