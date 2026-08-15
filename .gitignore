@@ -1,0 +1,15 @@
+# Compiled binaries
+/ai-proxy
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment secret files
+.env
+*.env
