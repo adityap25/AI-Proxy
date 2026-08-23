@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewServer(t *testing.T) {
-	srv := NewServer(&config.Config{Port: "8080"}, nil)
+	srv := NewServer(&config.Config{Port: "8080"}, nil, nil)
 
 	if got, want := srv.httpServer.Addr, ":8080"; got != want {
 		t.Errorf("expected address %q, got %q", want, got)

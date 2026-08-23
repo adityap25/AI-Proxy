@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"ai-proxy/internal/config"
+	"ai-proxy/internal/ollama"
 )
 
 const (
@@ -45,8 +46,8 @@ func New(port string, handler http.Handler) *Server {
 }
 
 // NewServer creates the gateway server with its application routes.
-func NewServer(cfg *config.Config, db *sql.DB) *Server {
-	return New(cfg.Port, NewHandler(db))
+func NewServer(cfg *config.Config, db *sql.DB, generator ollama.Generator) *Server {
+	return New(cfg.Port, NewHandler(db, generator))
 }
 
 // Start runs the HTTP server until the process receives SIGINT or SIGTERM.
