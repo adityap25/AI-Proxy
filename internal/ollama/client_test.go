@@ -51,3 +51,29 @@ func TestGenerateReturnsHTTPError(t *testing.T) {
 		t.Fatal("expected Ollama error")
 	}
 }
+
+func TestEmbed(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/embed" {
+			t.Fatalf("expected /api/embed, got %s", r.URL.Path)
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		const want = `{"model":"nomic-embed-text","input":"hello"}`
+		if got := string(body); got != want {
+			t.Errorf("expected request %s, got %s", want, got)
+		}
+		_, _ = w.Write([]byte(`{"embeddings":[[0.25,-0.5]]}`))
+	}))
+	defer server.Close()
+
+	embedding, err := New(server.URL, "nomic-embed-text").Embed(context.Background(), "hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(embedding) != 2 || embedding[0] != 0.25 || embedding[1] != -0.5 {
+		t.Fatalf("unexpected embedding: %v", embedding)
+	}
+}

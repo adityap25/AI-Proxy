@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"ai-proxy/internal/cache"
 	"ai-proxy/internal/config"
 	"ai-proxy/internal/ollama"
 )
@@ -47,7 +48,18 @@ func New(port string, handler http.Handler) *Server {
 
 // NewServer creates the gateway server with its application routes.
 func NewServer(cfg *config.Config, db *sql.DB, generator ollama.Generator) *Server {
-	return New(cfg.Port, NewHandler(db, generator))
+	semanticCache := &SemanticCache{
+		Repository: cache.NewRepository(db),
+		Embedder:   ollama.New(cfg.OllamaHost, cfg.EmbedModel),
+		Scope: cache.Scope{
+			GenerationModel:     cfg.LLMModel,
+			EmbeddingModel:      cfg.EmbedModel,
+			SystemPromptVersion: cfg.SystemPromptVersion,
+		},
+		MinSimilarity: cfg.CacheSimilarity,
+		TTL:           cfg.CacheTTL,
+	}
+	return New(cfg.Port, NewHandler(db, generator, semanticCache))
 }
 
 // Start runs the HTTP server until the process receives SIGINT or SIGTERM.
