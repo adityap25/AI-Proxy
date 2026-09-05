@@ -1,7 +1,10 @@
 // Package cache defines the safety boundary for semantic cache entries.
 package cache
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // Scope identifies requests that may safely share a semantically cached
 // response. This application is intentionally single-tenant, so no tenant or
@@ -19,12 +22,16 @@ type Scope struct {
 }
 
 // Key returns the stable namespace stored with a cache entry and used to limit
-// nearest-neighbor searches. Model names cannot contain a NUL byte, which lets
-// it serve as an unambiguous separator.
+// nearest-neighbor searches. Values are length-prefixed so the key remains
+// unambiguous while containing only text PostgreSQL can store.
 func (s Scope) Key() string {
 	return strings.Join([]string{
-		"generation=" + s.GenerationModel,
-		"embedding=" + s.EmbeddingModel,
-		"system-prompt=" + s.SystemPromptVersion,
-	}, "\x00")
+		scopeKeyPart("generation", s.GenerationModel),
+		scopeKeyPart("embedding", s.EmbeddingModel),
+		scopeKeyPart("system-prompt", s.SystemPromptVersion),
+	}, "|")
+}
+
+func scopeKeyPart(name, value string) string {
+	return name + "=" + strconv.Itoa(len(value)) + ":" + value
 }
