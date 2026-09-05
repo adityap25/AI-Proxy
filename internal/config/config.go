@@ -16,7 +16,13 @@ type Config struct {
 	OllamaHost string
 	EmbedModel string
 	LLMModel   string
-	Similarity float64
+
+	// Semantic cache settings. CacheSimilarity is cosine similarity, not
+	// pgvector cosine distance: 0.90 means "only reuse an answer when the
+	// closest prompt is at least 90% similar".
+	CacheSimilarity     float64
+	CacheTTL            time.Duration
+	SystemPromptVersion string
 
 	// Database Configs
 	DBMaxOpenConns    int
@@ -60,13 +66,22 @@ func Load() (*Config, error) {
 		OllamaHost: getEnv("OLLAMA_HOST", "http://localhost:11434"),
 		EmbedModel: getEnv("EMBED_MODEL", "nomic-embed-text"),
 		LLMModel:   getEnv("LLM_MODEL", "llama3.2:1b"),
-		Similarity: getEnvAsFloat("SIMILARITY_THRESHOLD", 0.15),
+
+		CacheSimilarity:     getEnvAsFloat("CACHE_SIMILARITY_THRESHOLD", 0.90),
+		CacheTTL:            getEnvAsDuration("CACHE_TTL", 24*time.Hour),
+		SystemPromptVersion: getEnv("SYSTEM_PROMPT_VERSION", "none"),
 
 		// DB Configs
 		DBMaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
 		DBMaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
 		DBConnMaxLifetime: getEnvAsDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
 		DBPingTimeout:     getEnvAsDuration("DB_PING_TIMEOUT", 5*time.Second),
+	}
+	if cfg.CacheSimilarity < 0 || cfg.CacheSimilarity > 1 {
+		return nil, fmt.Errorf("CACHE_SIMILARITY_THRESHOLD must be between 0 and 1")
+	}
+	if cfg.CacheTTL <= 0 {
+		return nil, fmt.Errorf("CACHE_TTL must be greater than zero")
 	}
 
 	return cfg, nil
